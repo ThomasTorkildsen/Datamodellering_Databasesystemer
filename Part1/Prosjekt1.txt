@@ -1,0 +1,359 @@
+#Creates a table for courses with CourseID and Term as key. Also has a name and an anon-status
+create table Course(
+	CourseID varchar(10),
+    Term varchar(10), 
+	CourseName varchar(50),
+    Anon bool,
+    constraint Pk_Emne Primary key (CourseID, Term)
+);
+
+#Creates a table containing the folders with FolderID as key. 
+#Not weak to Course because we need to be able to have subfolders.
+create table Folder(
+	FolderID int not null,
+    Foldername varchar(20),
+    constraint Pk_Folder Primary key (FolderID)
+);
+
+#Creates a table for threads using FolderID and ThreadID as key. Also has a title. The question posed
+#will be the first post in this thread. 
+create table Thread(
+    ThreadID int not null,
+    Title varchar(20),
+    constraint Pk_Thread primary key (ThreadID)
+);
+
+#Creates a table for posts using FolderID, ThreadID, and PostID
+create table Post(
+    PostID int, 
+    Content varchar(1000),
+    PostCreatedAt datetime,
+    Tag varchar(30),
+    constraint Pk_Post primary key (PostID)
+);
+
+#Create a table for userprofiles using Email as key. Each user also has a password and username
+create table UserProfile(
+	Email varchar(50),
+    Username varchar(50),
+    UserPassword varchar(50),
+    constraint Pk_User primary key (Email)
+);
+
+#Table that keeps track of which user wrote which post.
+create table UserPost(
+    PostID int,
+    Email varchar(50),
+    constraint Pk_UserPost primary key (PostID),
+    constraint Fk1_UserPost foreign key (PostID) references Post(PostID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_UserPost foreign key (Email) references UserProfile(Email)
+    on update cascade
+    on delete set null
+);
+
+#Table that keeps track of what folders that are subfolders of others
+create table SubFolder(
+	FolderID int,
+    SubFolderID int,
+    constraint Pk_SubFolder primary key (FolderID,SubFolderID),
+    constraint Fk1_SubFolder foreign key (FolderID) references Folder(FolderID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_SubFolder foreign key (SubFolderID) references Folder(FolderID)
+    on update cascade
+    on delete cascade
+);
+
+#Table that relates a users like to a post. Keeps track of time.
+create table Likes (
+	Email varchar(50),
+	PostID int,
+    TimeLiked datetime,
+    constraint Pk_Likes primary key(PostID, Email),
+	constraint Fk1_Likes foreign key(PostID)
+	references Post(PostID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_Likes foreign key(Email) 
+    references UserProfile(Email)
+    on update cascade
+    on delete cascade
+);
+
+create table Viewed (
+	ThreadID int,
+    Email varchar(50),
+    TimeOpened datetime,
+    constraint Pk_Viewed primary key(ThreadID, Email, TimeOpened),
+	constraint Fk1_Viewed foreign key(ThreadID)
+	references Thread(ThreadID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_Viewed foreign key(Email) 
+    references UserProfile(Email)
+    on update cascade
+    on delete cascade
+);
+
+create table Manage(
+	Email varchar(50),
+    FolderID int,
+    ActionType varchar(20),
+    constraint Pk_Manage primary key(Email, FolderID),
+    constraint Fk1_Manage foreign key(Email)
+    references UserProfile(Email)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_Manage foreign key(FolderID)
+    references Folder(FolderID)
+    on update cascade
+    on delete cascade
+);
+
+create table LinkedTo(
+	PostID int,
+	ToPostID int,
+    constraint Pk_LinkedTo primary key (PostID, ToPostID),
+    constraint Fk1_linkedTo foreign key (PostID)
+    references Post(PostID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_linkedTo foreign key (ToPostID)
+    references Post(PostID)
+    on update cascade
+    on delete cascade
+);
+
+create table EnrolledIn(
+	UserEmail varchar(50),
+    InstructorEmail varchar(50), 
+    CourseID varchar(10),
+    Term varchar(10),
+    Asinstructor bool,
+	constraint Pk_EnrolledIn primary key (UserEmail, CourseID, Term),
+    constraint Fk1_EnrolledIn foreign key (InstructorEmail) references UserProfile(Email)
+    on update cascade
+    on delete set null,
+    constraint Fk2_EnrolledIn foreign key (UserEmail) references UserProfile(Email)
+    on update cascade
+    on delete cascade,
+    constraint Fk3_EnrolledIn foreign key (CourseID, Term) references Course(CourseID, Term)
+    on update cascade
+    on delete cascade
+);
+
+create table FolderInCourse(
+	FolderID int,
+    CourseID varchar(10),
+    Term varchar(10),
+    constraint Pk_FolderIn primary key (FolderID),
+    constraint Fk1_FolderIn foreign key (FolderID) references Folder (FolderID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_FolderIn foreign key (CourseID,Term) references Course(CourseID,Term)
+    on update cascade
+    on delete cascade
+);
+
+create table ThreadInFolder(
+    ThreadID int,
+    FolderID int,
+    constraint Pk_ThreadInFolder primary key (ThreadID),
+    constraint Fk1_ThreadInFolder foreign key (FolderID) references Folder(FolderID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_ThreadInFolder foreign key (ThreadID) references Thread(ThreadID)
+    on update cascade
+    on delete cascade
+);
+
+create table PostInThread(
+	PostID int,
+    ThreadID int,
+    constraint Pk_PostInThread primary key (PostID),
+    constraint Fk1_PostInThread foreign key (PostID) references Post(PostID)
+    on update cascade
+    on delete cascade,
+    constraint Fk2_PostInThread foreign key (ThreadID) references Thread(ThreadID)
+    on update cascade
+    on delete cascade
+);
+
+/*
+#-------------------------------------------------------------
+#Lets make a realization of the database
+
+#Add some users
+insert into UserProfile values("instructor1@ntnu.no","Roger Midtstraum", "ins1p-ord");
+insert into UserProfile values("instructor2@ntnu.no","Svein Erik Bratsberg", "ins2p-ord");
+insert into UserProfile values("instructor3@ntnu.no", "Brynjulf Owren", "ins3p-ord");
+insert into UserProfile values("student1@ntnu.no","Thomas", "stud1p-ord");
+insert into UserProfile values("student2@ntnu.no","Sara", "stud2p-ord");
+insert into UserProfile values("student3@ntnu.no","Markus", "stud3p-ord");
+
+#Add some courses
+insert into Course values("TMA-4320", "V21", "Introduksjon til vitenskapelige beregninger", True);
+insert into Course values ("TDT-4145", "H21", "Datamodellering og databasesystemer", False);
+
+#Add users to courses
+insert into EnrolledIn values("instructor1@ntnu.no",null,"TDT-4145","H21",true);
+insert into EnrolledIn values("instructor2@ntnu.no","instructor1@ntnu.no","TDT-4145","H21",true);
+insert into EnrolledIn values("student1@ntnu.no","instructor1@ntnu.no","TDT-4145","H21",false);
+insert into EnrolledIn values("student2@ntnu.no","instructor2@ntnu.no","TDT-4145","H21",false);
+insert into EnrolledIn values("student3@ntnu.no","instructor1@ntnu.no","TDT-4145","H21",false);
+
+insert into EnrolledIn values("instructor3@ntnu.no",null,"TMA-4320","V21",true);
+insert into EnrolledIn values("student3@ntnu.no","instructor3@ntnu.no","TMA-4320","V21",true);
+insert into EnrolledIn values("student1@ntnu.no","instructor3@ntnu.no","TMA-4320","V21",false);
+
+#Add some folders
+insert into Folder values(1, "Project 1");
+insert into FolderInCourse values(1,"TDT-4145","H21");
+insert into Folder values(2, "Project 2");
+insert into FolderInCourse values(2,"TDT-4145","H21");
+insert into Folder values(3, "Task 1");
+insert into Folder values(4, "General questions");
+insert into FolderInCourse values(4,"TDT-4145","H21");
+insert into Folder values(5, "Project 1");
+insert into FolderInCourse values(5,"TMA-4320","V21");
+insert into Folder values(6,"Exam");
+insert into FolderInCourse values(6,"TDT-4145","H21");
+insert into Folder values(7,"Exam");
+insert into FolderInCourse values(7,"TMA-4320","V21");
+
+#Make Task 1 a subfolder of Project 1
+insert into SubFolder values(1,3);
+
+insert into Manage values("instructor1@ntnu.no",1,"Opprettet");
+insert into Manage values("instructor1@ntnu.no",2,"Opprettet");
+insert into Manage values("instructor1@ntnu.no",3,"Opprettet");
+insert into Manage values("instructor1@ntnu.no",4,"Opprettet");
+insert into Manage values("instructor2@ntnu.no",6,"Opprettet");
+insert into Manage values("instructor3@ntnu.no",5,"Opprettet");
+insert into Manage values("instructor3@ntnu.no",7,"Opprettet");
+
+#Make threads and post
+
+#Bruker student1 lager thread og spørsmål med tag question
+insert into Thread values(1,"Spm1");
+insert into ThreadInFolder values(1,1);
+insert into Post values(1,"Hei hva betyr egentlig 'WAL'?", "2021-03-10-12:00:05","Question");
+insert into PostInThread values(1,1);
+insert into UserPost values(1,"student1@ntnu.no");
+
+
+#insert into Thread values(1,"Title");
+#insert into Post values(2,"Content","2021-01-01-00:00:00","Tag");
+
+#insert into Post values(1,1,2,"Reply","2021-01-01-00:00:00","Tag");
+
+#Bruker student3 svarer og student1 sjekker svar
+insert into Viewed values(1,"student3@ntnu.no","2021-03-10-12:10:20");
+insert into Likes values ("student3@ntnu.no",1,"2021-03-10-12:10:30");
+insert into Post values(2,"Som i Waluigi?", "2021-03-10-12:10:43",null);
+insert into PostInThread values(2,1);
+insert into UserPost values(2,"student3@ntnu.no");
+insert into Viewed values (1,"student1@ntnu.no","2021-03-10-12:30:10");
+insert into Likes values ("student1@ntnu.no",2,"2021-03-10-12:30:30");
+
+#Bruker instructor1 svarer og markerer som homework solution
+insert into Viewed values (1,"instructor1@ntnu.no","2021-03-10-07:36:10");
+insert into Likes values ("instructor1@ntnu.no",1,"2021-03-10-07:36:30");
+insert into Post values(3,"Det kan bety mye. f.eks world armwrestling league eller forkortelse for walmart.", "2021-03-11-07:37:09", "Homework solutions");
+insert into PostInThread values(3,1);
+insert into UserPost values(3,"instructor1@ntnu.no");
+
+#Bruker instructor1 svarer også.
+insert into Viewed values (1,"instructor2@ntnu.no","2021-03-10-08:01:10");
+insert into Likes values ("instructor2@ntnu.no",3,"2021-03-10-08:01:15");
+insert into Post values(4,"Ja enig med Roger. Har ikke egentlig noen betydning.", "2021-03-11-08:01:40", null);
+insert into PostInThread values(4,1);
+insert into UserPost values(4,"instructor2@ntnu.no");
+
+#Folka ser den men svarer ikke
+insert into Viewed values (1,"student3@ntnu.no","2021-03-10-10:01:10");
+insert into Viewed values (1,"student1@ntnu.no","2021-03-10-10:01:30");
+insert into Viewed values (1,"instructor1@ntnu.no","2021-03-10-10:08:20");
+insert into Likes values ("instructor1@ntnu.no",4,"2021-03-10-18:01:15");
+
+#Ny thread
+insert into Thread values(2,"Spm2");
+select * from ThreadInFolder;
+insert into ThreadInFolder values(2,6);
+insert into Post values(5,"Her et et spørsmål uten svar. WAL for testnings skyld","2021-03-10-12:31:50",null);
+insert into PostInThread values(5,2);
+insert into Viewed values(2,"student3@ntnu.no","2021-01-01-10:00:00");
+insert into UserPost values(5,"student1@ntnu.no");
+
+insert into Thread values(3,"Exam question");
+insert into ThreadInFolder values(3,7);
+insert into Post values(6,"Spørsmål om eksamen i vitber. Er det betsått/ikke-bestått?","2021-05-3:10:10:10",null);
+insert into PostInThread values(6,3);
+insert into UserPost values(6,"student1@ntnu.no");
+insert into Viewed values(3,"student3@ntnu.no","2021-02-01-10:00:10");
+
+*/
+
+/*
+#Spørringer for use cases
+#---------------------------------
+#Oppgave 1, spør om det finnes bruker med email og passord gitt. 
+
+select * from UserProfile where Email="person@mail.no" and UserPassword="passord123";
+select * from UserProfile join EnrolledIn on Email = UserEmail natural join Course where Email="student3@ntnu.no" and UserPassword="stud2p-ord";
+
+#Oppgave 2
+
+insert into Thread values (1,"Title"); #ThreadID, Title
+insert into ThreadInFolder values (1,1); #ThreadID, FolderID. FolderID = 1 is a folder named Exam
+insert into Post values(1,"Hey...","2021-11-03-10:00:00","Question");#PostID, Content, TimeDate, Tag
+insert into PostInThread values(1,1); #PostID, ThreadID
+insert into UserPost values(1,"person@mail.com"); #PostID, Email
+
+#Oppgave 3
+
+insert into Post values(2,"My reply is...","2021-11-03-11:00:00",null); #PostID, Content, TimeDate, Tag
+insert into PostInThread values (2,1); #PostID, ThreadID
+insert into UserPost values(2,"instructor@mail.com"); #PostID, Email
+
+#Oppgave 4
+
+select PostdID from Post 
+natural join PostInThread 
+natural join ThreadInFolder 
+natural join Folder 
+natural join FolderInCourse 
+natural join Course 
+where Content like "%WAL%" and CourseID = "TDT-4145" and Term = "V21";
+
+#Oppgave 5
+
+
+select tab1.Email, Nviewed, Nposted 
+from (select Ei.UserEmail as Email, EI.CourseID, EI.Term, NViewed from EnrolledIn as EI 
+left join
+	(select temp.Email,temp.CourseID ,temp.Term, temp.ThreadID, count(ThreadID) as Nviewed 
+    from 
+		(select Email, CourseID, Term, ThreadID 
+			from FolderInCourse 
+            natural join ThreadInFolder 
+            natural join Viewed) 
+		as temp group by temp.CourseID,temp.Term, temp.ThreadID, temp.email) as tab1
+	on EI.UserEmail = tab1.Email and EI.CourseID = tab1.CourseID and EI.Term = tab1.Term) as tab1
+left join
+(select temp.Email,temp.CourseID,temp.Term,count(PostID) as Nposted 
+from (select Email, CourseID, Term, PostID 
+	from FolderInCourse natural join ThreadInFolder 
+    natural join Thread natural join PostInThread 
+    natural join Post natural join UserPost) as temp 
+    group by temp.CourseID, temp.email, temp.term) as tab2
+on tab1.CourseID = tab2.CourseID and tab1.Email=tab2.Email
+where tab1.CourseID = "TDT-4145" and tab1.Term = "H21"
+order by Nviewed desc;
+
+*/
+
+
+
