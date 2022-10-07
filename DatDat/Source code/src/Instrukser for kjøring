@@ -1,0 +1,3 @@
+For å kjøre applikasjonen, åpne javafilen "Application.jar" 
+i command-promt. mysql-driveren må befinne seg i samme mappe som 
+Application.jar og må hete "mysql-connector-java-8.0.23.jar" for å kjøre.
